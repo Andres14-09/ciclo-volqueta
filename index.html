@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f2b705">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Ciclo de Volqueta</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#f3f2ee; --panel:#ffffff; --fg:#1c1d1a; --muted:#62645c; --line:#d9d8d0;
+  --hivis:#f2b705; --hivis-ink:#1c1d1a; --steel:#2f3d46; --ok:#2e7d4f; --warn:#b4531a;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141613; --panel:#1e211d; --fg:#ecebe4; --muted:#9a9c92; --line:#33372f;
+  --hivis:#f5c02a; --hivis-ink:#141613; --steel:#9fb3bf; --ok:#5fbf86; --warn:#e48a4e; color-scheme:dark}}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px;display:flex;flex-direction:column;gap:16px}
+[hidden]{display:none!important}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:.01em;margin:0;text-transform:uppercase}
+h1 span{color:var(--hivis)}
+.who{font-size:14px;color:var(--muted)}
+h2{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+input{font:inherit;font-size:17px;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--hivis);outline-offset:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:11px 14px;font-weight:600}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px}
+.btn-row button{flex:1 1 140px}
+.primary{background:var(--steel);color:var(--bg);border-color:var(--steel)}
+.now{gap:6px}
+.now .tag{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.now .phase{font-family:var(--display);font-size:28px;font-weight:700;line-height:1.1}
+.clock{font-family:var(--mono);font-size:44px;font-weight:700;font-variant-numeric:tabular-nums}
+.since{font-size:14px;color:var(--muted)}
+.sync{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.sync i{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
+.sync.ok i{background:var(--ok)} .sync.pend i{background:var(--warn)}
+.big{width:100%;min-height:150px;border:none;border-radius:14px;background:var(--hivis);color:var(--hivis-ink);
+  font-family:var(--display);font-weight:800;font-size:34px;line-height:1.05;text-transform:uppercase;
+  padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 6px 0 rgba(0,0,0,.25);touch-action:manipulation;
+  background-image:repeating-linear-gradient(135deg,transparent 0 22px,rgba(0,0,0,.06) 22px 44px)}
+.big small{font-family:var(--body);font-size:15px;font-weight:600;text-transform:none;opacity:.8}
+.big:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.flash{animation:fl .5s ease}
+@keyframes fl{0%{filter:brightness(1.4)}100%{filter:none}}
+@media (prefers-reduced-motion:reduce){.flash{animation:none}.big:active{transform:none}}
+.steps{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.steps i{height:6px;border-radius:3px;background:var(--line)}
+.steps i.done{background:var(--hivis)} .steps i.cur{background:var(--steel)}
+.steplbl{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:10px;color:var(--muted);text-transform:uppercase;text-align:center;line-height:1.15}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--bg)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel)}
+th:first-child{background:var(--bg)}
+td.open{color:var(--muted)}
+tr.avg td{font-weight:700;border-top:2px solid var(--fg)}
+.note{font-size:13px;color:var(--warn)}
+.empty{color:var(--muted);font-size:15px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:20;max-width:90%}
+.confirm{border:2px solid var(--warn);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ciclo de <span>Volqueta</span></h1>
+    <div class="who" id="who"></div>
+  </header>
+
+  <section class="panel" id="setup" hidden>
+    <h2>Datos de la volqueta</h2>
+    <div class="grid2">
+      <label>Conductor<input id="f-conductor" autocomplete="name" placeholder="Ej. Juan Pérez"></label>
+      <label>Placa / N° volqueta<input id="f-placa" placeholder="Ej. ABC-1234"></label>
+      <label>Capacidad (m³)<input id="f-cap" inputmode="decimal" placeholder="Ej. 8"></label>
+      <label>Frente de carga<input id="f-frente" placeholder="Ej. Frente 1"></label>
+    </div>
+    <label>Punto de descarga<input id="f-descarga" placeholder="Ej. Planta / tolva"></label>
+    <button class="primary" id="btn-save">Empezar a registrar</button>
+    <p class="hint">Funciona sin señal. Los ciclos se guardan en el celular y se envían solos cuando vuelve el internet.</p>
+  </section>
+
+  <section class="panel now" id="main" hidden>
+    <div class="tag" id="cyc-tag">Ciclo 1</div>
+    <div class="phase" id="phase">Listo para empezar</div>
+    <div class="clock" id="clock">00:00</div>
+    <div class="since" id="since"></div>
+    <div class="steps" id="steps"></div>
+    <div class="steplbl"><span>Cola frente</span><span>Manio&shy;bra</span><span>Carga</span><span>Acarreo</span><span>Cola desc.</span><span>Descar&shy;ga</span><span>Retorno</span></div>
+    <div class="sync" id="sync"><i></i><span id="sync-txt"></span></div>
+  </section>
+
+  <button class="big" id="big" hidden><span id="big-txt">Llegué al frente</span><small id="big-sub"></small></button>
+
+  <div class="btn-row" id="tools" hidden>
+    <button id="btn-undo">Deshacer última marca</button>
+    <button id="btn-note">Anotar novedad</button>
+  </div>
+  <div class="panel" id="note-box" hidden>
+    <label>Novedad en este ciclo<input id="f-note" placeholder="Ej. excavadora en mantenimiento, lluvia, falla"></label>
+    <div class="btn-row"><button class="primary" id="btn-note-ok">Guardar novedad</button><button id="btn-note-x">Cancelar</button></div>
+  </div>
+
+  <section class="panel" id="hist" hidden>
+    <h2>Ciclos registrados</h2>
+    <p class="hint">Tiempos en minutos:segundos. El retorno se completa al marcar la llegada al frente del ciclo siguiente.</p>
+    <div id="tbl-wrap"></div>
+    <div class="btn-row">
+      <button class="primary" id="btn-wa">Enviar por WhatsApp</button>
+      <button id="btn-copy">Copiar para Excel</button>
+      <button id="btn-dl">Descargar CSV</button>
+    </div>
+    <textarea id="copy-area" hidden readonly></textarea>
+    <div class="btn-row">
+      <button id="btn-edit">Cambiar datos de la volqueta</button>
+      <button id="btn-reset">Borrar todo y empezar día nuevo</button>
+    </div>
+    <div class="confirm" id="reset-box" hidden>
+      <strong>¿Borrar los ciclos de este celular?</strong>
+      <span class="hint" id="reset-hint"></span>
+      <div class="btn-row"><button id="btn-reset-ok" style="border-color:var(--warn);color:var(--warn)">Sí, borrar</button><button id="btn-reset-x">Cancelar</button></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ====== PEGUE AQUÍ LA URL DE SU APPS SCRIPT (termina en /exec) ====== */
+const SERVER_URL = '';
+/* ==================================================================== */
+
+const KEY='ciclo-volqueta-v2';
+const MARKS=[
+  {k:'llegada',  btn:'Llegué al frente',            sub:'Toque al llegar a la zona de carga',     now:'En cola, esperando turno'},
+  {k:'iniManiob',btn:'Empiezo a cuadrarme',         sub:'Toque al empezar la maniobra junto a la excavadora', now:'Maniobra / posicionamiento'},
+  {k:'iniCarga', btn:'Empieza la carga',            sub:'Toque cuando cae el primer balde',        now:'Cargando'},
+  {k:'finCarga', btn:'Terminó la carga · salgo',    sub:'Toque al caer el último balde',           now:'Acarreo cargado hacia la descarga'},
+  {k:'llegaDesc',btn:'Llegué a la descarga',        sub:'Toque al llegar a la planta / tolva',     now:'En cola para descargar'},
+  {k:'iniDesc',  btn:'Empiezo a descargar',         sub:'Toque al empezar a retroceder o levantar el balde', now:'Descargando'},
+  {k:'finDesc',  btn:'Terminé de descargar · regreso', sub:'Toque al bajar el balde y arrancar',  now:'Retorno vacío al frente'}
+];
+const PH=[['Cola frente','llegada','iniManiob'],['Maniobra','iniManiob','iniCarga'],['Carga','iniCarga','finCarga'],['Acarreo','finCarga','llegaDesc'],['Cola descarga','llegaDesc','iniDesc'],['Descarga','iniDesc','finDesc']];
+
+let S={perfil:null,ciclos:[],dev:null,pend:{}};
+try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
+if(!S.dev){S.dev=Math.random().toString(36).slice(2,8).toUpperCase();}
+if(!S.pend) S.pend={};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast('No se pudo guardar en este celular');}}
+save();
+const $=id=>document.getElementById(id);
+
+const last=()=>S.ciclos[S.ciclos.length-1];
+function nextIdx(){const c=last(); if(!c) return 0; const i=MARKS.findIndex(m=>!c.m[m.k]); return i===-1?0:i;}
+const pad=n=>String(n).padStart(2,'0');
+function mmss(ms){if(ms==null||ms<0) return '—'; const s=Math.round(ms/1000); return pad(Math.floor(s/60))+':'+pad(s%60);}
+function hms(t){if(!t) return ''; const d=new Date(t); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());}
+function fechaDe(t){const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+const retorno=i=>{const c=S.ciclos[i],n=S.ciclos[i+1]; return (c.m.finDesc&&n&&n.m.llegada)? n.m.llegada-c.m.finDesc : null;};
+const total=i=>{const c=S.ciclos[i],n=S.ciclos[i+1]; return (n&&n.m.llegada)? n.m.llegada-c.m.llegada : null;};
+const dur=(c,a,b)=>(c.m[a]&&c.m[b])? c.m[b]-c.m[a] : null;
+const dirty=c=>{if(c) S.pend[c.id]=1;};
+
+function press(){
+  const i=nextIdx(), now=Date.now();
+  if(i===0){
+    dirty(last()); // el ciclo anterior gana retorno y total
+    S.ciclos.push({id:S.dev+'-'+now,n:S.ciclos.length+1,m:{llegada:now},notas:[]});
+  } else last().m[MARKS[i].k]=now;
+  dirty(last()); save();
+  try{navigator.vibrate&&navigator.vibrate(60);}catch(e){}
+  const b=$('big'); b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
+  toast(MARKS[i].btn+' · '+hms(now)); render(); flush();
+}
+function undo(){
+  const c=last(); if(!c) return;
+  const i=nextIdx(); const k = i===0? 'finDesc' : MARKS[i-1].k;
+  if(k==='llegada'){S.ciclos.pop(); S.pend[c.id]='del'; dirty(last());}
+  else {delete c.m[k]; dirty(c);}
+  save(); toast('Se deshizo la última marca'); render(); flush();
+}
+
+function render(){
+  const p=S.perfil;
+  $('setup').hidden=!!p; ['main','big','tools','hist'].forEach(id=>$(id).hidden=!p);
+  if(!p) return;
+  $('who').textContent=[p.conductor,p.placa].filter(Boolean).join(' · ');
+  const i=nextIdx(), c=last(), closed=c&&i===0;
+  $('big-txt').textContent=MARKS[i].btn; $('big-sub').textContent=MARKS[i].sub;
+  const cur = !c? -1 : (closed?6:i-1);
+  if(!c){$('cyc-tag').textContent='Ciclo 1';$('phase').textContent='Listo para empezar';$('since').textContent='';}
+  else{
+    $('cyc-tag').textContent='Ciclo '+c.n+(closed?' · siguiente: ciclo '+(c.n+1):'');
+    $('phase').textContent=MARKS[cur].now;
+    $('since').textContent='Desde las '+hms(c.m[MARKS[cur].k]);
+  }
+  $('steps').innerHTML=MARKS.map((m,k)=>'<i class="'+(k<cur?'done':k===cur?'cur':'')+'"></i>').join('');
+  renderTable(); renderSync(); tick();
+}
+function tick(){
+  const c=last(), i=nextIdx();
+  if(!c){$('clock').textContent='00:00';return;}
+  $('clock').textContent=mmss(Date.now()-c.m[i===0?'finDesc':MARKS[i-1].k]);
+}
+setInterval(tick,1000);
+
+let syncing=false, lastErr='';
+function renderSync(){
+  const n=Object.keys(S.pend).length, el=$('sync');
+  if(!SERVER_URL){el.className='sync';$('sync-txt').textContent='Sin base de datos configurada · use WhatsApp';return;}
+  if(!n){el.className='sync ok';$('sync-txt').textContent='Todo enviado a la base de datos';return;}
+  el.className='sync pend';
+  $('sync-txt').textContent=(syncing?'Enviando ':'')+n+' ciclo'+(n>1?'s':'')+' por enviar'+(navigator.onLine?'':' · sin señal, se envía solo al conectar');
+}
+
+function rowObj(c,ix){
+  const p=S.perfil, s=v=>v==null?'':Math.round(v/1000);
+  return {ID:c.id,Fecha:fechaDe(c.m.llegada),Conductor:p.conductor,Placa:p.placa,Capacidad_m3:p.cap,Frente:p.frente,Descarga:p.descarga,Ciclo:c.n,
+    H_llegada_frente:hms(c.m.llegada),H_inicio_maniobra:hms(c.m.iniManiob),H_inicio_carga:hms(c.m.iniCarga),H_fin_carga:hms(c.m.finCarga),
+    H_llegada_descarga:hms(c.m.llegaDesc),H_inicio_descarga:hms(c.m.iniDesc),H_fin_descarga:hms(c.m.finDesc),
+    Cola_frente_s:s(dur(c,'llegada','iniManiob')),Maniobra_s:s(dur(c,'iniManiob','iniCarga')),Carga_s:s(dur(c,'iniCarga','finCarga')),
+    Acarreo_s:s(dur(c,'finCarga','llegaDesc')),Cola_descarga_s:s(dur(c,'llegaDesc','iniDesc')),Descarga_s:s(dur(c,'iniDesc','finDesc')),
+    Retorno_s:s(retorno(ix)),Total_ciclo_s:s(total(ix)),Novedades:c.notas.join(' / ')};
+}
+
+async function flush(){
+  if(!SERVER_URL||syncing||!navigator.onLine) {renderSync();return;}
+  const ids=Object.keys(S.pend); if(!ids.length){renderSync();return;}
+  const rows=ids.map(id=>{
+    if(S.pend[id]==='del') return {ID:id,deleted:true};
+    const ix=S.ciclos.findIndex(c=>c.id===id); return ix<0?{ID:id,deleted:true}:rowObj(S.ciclos[ix],ix);
+  });
+  const sent={}; ids.forEach(id=>sent[id]=S.pend[id]);
+  syncing=true; renderSync();
+  try{
+    const r=await fetch(SERVER_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({rows})});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'error');
+    // solo quitar los que no cambiaron mientras se enviaba
+    (j.done||ids).forEach(id=>{ if(S.pend[id]===sent[id]) delete S.pend[id]; });
+    save(); lastErr='';
+  }catch(e){lastErr=String(e);}
+  syncing=false; renderSync();
+}
+window.addEventListener('online',flush);
+setInterval(flush,30000);
+
+function renderTable(){
+  const w=$('tbl-wrap');
+  if(!S.ciclos.length){w.innerHTML='<p class="empty">Aún no hay ciclos. Toque el botón amarillo al llegar al frente.</p>';return;}
+  let h='<div class="tbl"><table><thead><tr><th>Ciclo</th><th>Llegada</th>'+PH.map(p=>'<th>'+p[0]+'</th>').join('')+'<th>Retorno</th><th>Total</th></tr></thead><tbody>';
+  const sums=Array(8).fill(0),cnt=Array(8).fill(0);
+  S.ciclos.forEach((c,ix)=>{
+    const vals=PH.map(p=>dur(c,p[1],p[2])).concat([retorno(ix),total(ix)]);
+    vals.forEach((v,j)=>{if(v!=null){sums[j]+=v;cnt[j]++;}});
+    h+='<tr><td>'+c.n+'</td><td>'+hms(c.m.llegada).slice(0,5)+'</td>'+vals.map(v=>'<td class="'+(v==null?'open':'')+'">'+mmss(v)+'</td>').join('')+'</tr>';
+    if(c.notas.length) h+='<tr><td colspan="10" class="note" style="text-align:left;position:static">Novedad: '+c.notas.map(esc).join(' · ')+'</td></tr>';
+  });
+  h+='<tr class="avg"><td>Prom.</td><td></td>'+sums.map((s,j)=>'<td>'+(cnt[j]?mmss(s/cnt[j]):'—')+'</td>').join('')+'</tr>';
+  w.innerHTML=h+'</tbody></table></div>';
+}
+const esc=s=>s.replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+function table(){const rs=S.ciclos.map(rowObj); const head=rs.length?Object.keys(rs[0]):[]; return [head,...rs.map(r=>head.map(k=>r[k]))];}
+const tsv=()=>table().map(r=>r.map(v=>String(v??'').replace(/[\t\n]/g,' ')).join('\t')).join('\n');
+const csv=()=>table().map(r=>r.map(v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(';')).join('\n');
+function waText(){
+  const p=S.perfil;
+  let t='*Registro de ciclos*\n'+p.conductor+' · '+p.placa+(p.cap?' · '+p.cap+' m³':'')+'\nFrente: '+p.frente+' → '+p.descarga+'\n\n';
+  t+='Ciclo | Cola fr | Maniob | Carga | Acarreo | Cola des | Desc | Retorno | Total\n';
+  S.ciclos.forEach((c,ix)=>{
+    t+=c.n+' ('+hms(c.m.llegada).slice(0,5)+') | '+PH.map(q=>mmss(dur(c,q[1],q[2]))).join(' | ')+' | '+mmss(retorno(ix))+' | '+mmss(total(ix))+(c.notas.length?'\n   Novedad: '+c.notas.join(' / '):'')+'\n';
+  });
+  return t+'\n--- Datos para Excel (segundos) ---\n'+csv();
+}
+
+$('btn-save').onclick=()=>{
+  const v=id=>$(id).value.trim();
+  if(!v('f-conductor')||!v('f-placa')){toast('Escriba al menos el nombre y la placa');return;}
+  S.perfil={conductor:v('f-conductor'),placa:v('f-placa'),cap:v('f-cap'),frente:v('f-frente'),descarga:v('f-descarga')};
+  S.ciclos.forEach(dirty); save(); render(); wake(); flush();
+};
+$('btn-edit').onclick=()=>{const p=S.perfil;$('f-conductor').value=p.conductor;$('f-placa').value=p.placa;$('f-cap').value=p.cap;$('f-frente').value=p.frente;$('f-descarga').value=p.descarga;S.perfil=null;render();window.scrollTo(0,0);};
+$('big').onclick=press;
+$('btn-undo').onclick=undo;
+$('btn-note').onclick=()=>{if(!last()){toast('Primero registre una llegada al frente');return;}$('note-box').hidden=false;$('f-note').focus();};
+$('btn-note-x').onclick=()=>{$('note-box').hidden=true;};
+$('btn-note-ok').onclick=()=>{const t=$('f-note').value.trim(); if(t){last().notas.push(hms(Date.now()).slice(0,5)+' '+t);dirty(last());save();render();flush();toast('Novedad guardada');} $('f-note').value='';$('note-box').hidden=true;};
+$('btn-copy').onclick=async()=>{
+  const t=tsv();
+  try{await navigator.clipboard.writeText(t);toast('Copiado. Pegue en Excel');}
+  catch(e){const a=$('copy-area');a.hidden=false;a.value=t;a.select();toast('Seleccione el texto y cópielo');}
+};
+$('btn-wa').onclick=()=>{window.open('https://wa.me/?text='+encodeURIComponent(waText()),'_blank');};
+$('btn-dl').onclick=()=>{
+  const b=new Blob(['﻿'+csv()],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ciclos_'+(S.perfil.placa||'volqueta').replace(/\W+/g,'_')+'_'+fechaDe(Date.now())+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+};
+$('btn-reset').onclick=()=>{
+  const n=Object.keys(S.pend).length;
+  $('reset-hint').textContent = SERVER_URL&&n ? 'Atención: hay '+n+' ciclos que aún no llegan a la base de datos. Conéctese a internet antes de borrar o envíe por WhatsApp.' : 'Los ciclos ya enviados quedan guardados en la base de datos.';
+  $('reset-box').hidden=false;
+};
+$('btn-reset-x').onclick=()=>{$('reset-box').hidden=true;};
+$('btn-reset-ok').onclick=()=>{
+  const keep={}; Object.keys(S.pend).forEach(id=>{ if(S.pend[id]==='del') keep[id]='del'; });
+  if(Object.keys(S.pend).length>Object.keys(keep).length && SERVER_URL){toast('Primero envíe los ciclos pendientes');return;}
+  S.ciclos=[]; S.pend=keep; save(); $('reset-box').hidden=true; render(); toast('Registros borrados');
+};
+
+let tt; function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200);}
+async function wake(){try{await navigator.wakeLock?.request('screen');}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){wake();tick();flush();}});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+render(); if(S.perfil){wake();flush();}
+</script>
+</body>
+</html>
