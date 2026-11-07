@@ -77,6 +77,14 @@ tr.avg td{font-weight:700;border-top:2px solid var(--fg)}
 .confirm{border:2px solid var(--warn);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
 textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
 .hint{font-size:13px;color:var(--muted);margin:0}
+.selrow{display:flex;flex-direction:column;gap:6px}
+.sl{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-height:50px;font-size:17px}
+.seg button[aria-pressed="true"]{background:var(--steel);color:var(--bg);border-color:var(--steel)}
+.seg.need button{border-color:var(--warn);border-width:2px}
+.bigsplit{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.bigsplit .big{font-size:27px;min-height:150px}
 </style>
 </head>
 <body>
@@ -92,9 +100,7 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px;back
       <label>Conductor<input id="f-conductor" autocomplete="name" placeholder="Ej. Juan Pérez"></label>
       <label>Placa / N° volqueta<input id="f-placa" placeholder="Ej. ABC-1234"></label>
       <label>Capacidad (m³)<input id="f-cap" inputmode="decimal" placeholder="Ej. 8"></label>
-      <label>Frente de carga<input id="f-frente" placeholder="Ej. Frente 1"></label>
     </div>
-    <label>Punto de descarga<input id="f-descarga" placeholder="Ej. Planta / tolva"></label>
     <button class="primary" id="btn-save">Empezar a registrar</button>
     <p class="hint">Funciona sin señal. Los ciclos se guardan en el celular y se envían solos cuando vuelve el internet.</p>
   </section>
@@ -109,7 +115,12 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px;back
     <div class="sync" id="sync"><i></i><span id="sync-txt"></span></div>
   </section>
 
+  <section class="panel" id="selp" hidden>
+    <div class="selrow"><span class="sl">Frente de carga (se mantiene hasta que lo cambie)</span><div class="seg" id="seg-frente"></div></div>
+  </section>
+
   <button class="big" id="big" hidden><span id="big-txt">Llegué al frente</span><small id="big-sub"></small></button>
+  <div class="bigsplit" id="bigsplit" hidden></div>
 
   <div class="btn-row" id="tools" hidden>
     <button id="btn-undo">Deshacer última marca</button>
@@ -145,7 +156,7 @@ textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px;back
 
 <script>
 /* ====== PEGUE AQUÍ LA URL DE SU APPS SCRIPT (termina en /exec) ====== */
-const SERVER_URL = 'https://script.google.com/macros/s/AKfycbwC0OYnAcTUq0lDlBAScuH7V3qQuS8FuTZY37ucDretYoSd_T7wqdjPfvzP3woybQBCMw/exec';
+const SERVER_URL = '';
 /* ==================================================================== */
 
 const KEY='ciclo-volqueta-v2';
@@ -160,8 +171,13 @@ const MARKS=[
 ];
 const PH=[['Cola frente','llegada','iniManiob'],['Maniobra','iniManiob','iniCarga'],['Carga','iniCarga','finCarga'],['Acarreo','finCarga','llegaDesc'],['Cola descarga','llegaDesc','iniDesc'],['Descarga','iniDesc','finDesc']];
 
-let S={perfil:null,ciclos:[],dev:null,pend:{}};
+/* Nombres fijos de frentes y puntos de descarga (se pueden cambiar aquí) */
+const FRENTES=['Voladura','Roca mina'];
+const DESCARGAS=['Acopio 1','Acopio 2'];
+
+let S={perfil:null,ciclos:[],dev:null,pend:{},sel:{frente:null,descarga:null}};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
+if(!S.sel) S.sel={frente:null,descarga:null};
 if(!S.dev){S.dev=Math.random().toString(36).slice(2,8).toUpperCase();}
 if(!S.pend) S.pend={};
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast('No se pudo guardar en este celular');}}
@@ -179,16 +195,21 @@ const total=i=>{const c=S.ciclos[i],n=S.ciclos[i+1]; return (n&&n.m.llegada)? n.
 const dur=(c,a,b)=>(c.m[a]&&c.m[b])? c.m[b]-c.m[a] : null;
 const dirty=c=>{if(c) S.pend[c.id]=1;};
 
-function press(){
+function press(acopio){
   const i=nextIdx(), now=Date.now();
+  if(i===0 && !S.sel.frente){toast('Primero toque el frente: '+FRENTES.join(' o '));$('seg-frente').classList.add('need');return;}
+  if(i===4 && typeof acopio!=='string') return;
   if(i===0){
     dirty(last()); // el ciclo anterior gana retorno y total
-    S.ciclos.push({id:S.dev+'-'+now,n:S.ciclos.length+1,m:{llegada:now},notas:[]});
-  } else last().m[MARKS[i].k]=now;
+    S.ciclos.push({id:S.dev+'-'+now,n:S.ciclos.length+1,m:{llegada:now},notas:[],frente:S.sel.frente,descarga:''});
+  } else {
+    last().m[MARKS[i].k]=now;
+    if(i===4) last().descarga=acopio;
+  }
   dirty(last()); save();
   try{navigator.vibrate&&navigator.vibrate(60);}catch(e){}
   const b=$('big'); b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
-  toast(MARKS[i].btn+' · '+hms(now)); render(); flush();
+  toast((i===4?'Llegué al '+acopio:MARKS[i].btn)+' · '+hms(now)); render(); flush();
 }
 function undo(){
   const c=last(); if(!c) return;
@@ -198,13 +219,34 @@ function undo(){
   save(); toast('Se deshizo la última marca'); render(); flush();
 }
 
+function setSel(kind,val){
+  S.sel[kind]=val;
+  const c=last(), open=c&&nextIdx()!==0;
+  // corrige el ciclo en curso si aún no pasó esa etapa
+  if(open && kind==='frente' && !c.m.finCarga){c.frente=val;dirty(c);}
+  save(); render(); flush(); toast('Frente: '+val);
+}
+function renderSel(){
+  [['seg-frente',FRENTES,'frente']].forEach(([id,list,kind])=>{
+    const box=$(id); box.innerHTML=''; box.classList.toggle('need',false);
+    list.forEach(v=>{const b=document.createElement('button');b.type='button';b.textContent=v;
+      b.setAttribute('aria-pressed',S.sel[kind]===v?'true':'false');b.onclick=()=>setSel(kind,v);box.appendChild(b);});
+  });
+}
+
 function render(){
   const p=S.perfil;
-  $('setup').hidden=!!p; ['main','big','tools','hist'].forEach(id=>$(id).hidden=!p);
+  $('setup').hidden=!!p; ['main','selp','big','tools','hist'].forEach(id=>$(id).hidden=!p);
   if(!p) return;
+  renderSel();
   $('who').textContent=[p.conductor,p.placa].filter(Boolean).join(' · ');
   const i=nextIdx(), c=last(), closed=c&&i===0;
   $('big-txt').textContent=MARKS[i].btn; $('big-sub').textContent=MARKS[i].sub;
+  // al llegar a la descarga: un botón por acopio (un solo toque marca hora y acopio)
+  const split=$('bigsplit'); $('big').hidden=(i===4); split.hidden=(i!==4); split.innerHTML='';
+  if(i===4) DESCARGAS.forEach(a=>{const b=document.createElement('button');b.className='big';b.type='button';
+    b.innerHTML='<span>Llegué al '+esc(a)+'</span><small>Toque el acopio donde va a descargar</small>';
+    b.onclick=()=>press(a); split.appendChild(b);});
   const cur = !c? -1 : (closed?6:i-1);
   if(!c){$('cyc-tag').textContent='Ciclo 1';$('phase').textContent='Listo para empezar';$('since').textContent='';}
   else{
@@ -233,7 +275,7 @@ function renderSync(){
 
 function rowObj(c,ix){
   const p=S.perfil, s=v=>v==null?'':Math.round(v/1000);
-  return {ID:c.id,Fecha:fechaDe(c.m.llegada),Conductor:p.conductor,Placa:p.placa,Capacidad_m3:p.cap,Frente:p.frente,Descarga:p.descarga,Ciclo:c.n,
+  return {ID:c.id,Fecha:fechaDe(c.m.llegada),Conductor:p.conductor,Placa:p.placa,Capacidad_m3:p.cap,Frente:c.frente||p.frente||'',Descarga:c.descarga||p.descarga||'',Ciclo:c.n,
     H_llegada_frente:hms(c.m.llegada),H_inicio_maniobra:hms(c.m.iniManiob),H_inicio_carga:hms(c.m.iniCarga),H_fin_carga:hms(c.m.finCarga),
     H_llegada_descarga:hms(c.m.llegaDesc),H_inicio_descarga:hms(c.m.iniDesc),H_fin_descarga:hms(c.m.finDesc),
     Cola_frente_s:s(dur(c,'llegada','iniManiob')),Maniobra_s:s(dur(c,'iniManiob','iniCarga')),Carga_s:s(dur(c,'iniCarga','finCarga')),
@@ -266,15 +308,15 @@ setInterval(flush,30000);
 function renderTable(){
   const w=$('tbl-wrap');
   if(!S.ciclos.length){w.innerHTML='<p class="empty">Aún no hay ciclos. Toque el botón amarillo al llegar al frente.</p>';return;}
-  let h='<div class="tbl"><table><thead><tr><th>Ciclo</th><th>Llegada</th>'+PH.map(p=>'<th>'+p[0]+'</th>').join('')+'<th>Retorno</th><th>Total</th></tr></thead><tbody>';
+  let h='<div class="tbl"><table><thead><tr><th>Ciclo</th><th>Frente</th><th>Llegada</th>'+PH.map(p=>'<th>'+p[0]+'</th>').join('')+'<th>Retorno</th><th>Total</th></tr></thead><tbody>';
   const sums=Array(8).fill(0),cnt=Array(8).fill(0);
   S.ciclos.forEach((c,ix)=>{
     const vals=PH.map(p=>dur(c,p[1],p[2])).concat([retorno(ix),total(ix)]);
     vals.forEach((v,j)=>{if(v!=null){sums[j]+=v;cnt[j]++;}});
-    h+='<tr><td>'+c.n+'</td><td>'+hms(c.m.llegada).slice(0,5)+'</td>'+vals.map(v=>'<td class="'+(v==null?'open':'')+'">'+mmss(v)+'</td>').join('')+'</tr>';
-    if(c.notas.length) h+='<tr><td colspan="10" class="note" style="text-align:left;position:static">Novedad: '+c.notas.map(esc).join(' · ')+'</td></tr>';
+    h+='<tr><td>'+c.n+'</td><td style="text-align:left">'+esc(c.frente||S.perfil.frente||'')+'</td><td>'+hms(c.m.llegada).slice(0,5)+'</td>'+vals.map(v=>'<td class="'+(v==null?'open':'')+'">'+mmss(v)+'</td>').join('')+'</tr>';
+    if(c.notas.length) h+='<tr><td colspan="11" class="note" style="text-align:left;position:static">Novedad: '+c.notas.map(esc).join(' · ')+'</td></tr>';
   });
-  h+='<tr class="avg"><td>Prom.</td><td></td>'+sums.map((s,j)=>'<td>'+(cnt[j]?mmss(s/cnt[j]):'—')+'</td>').join('')+'</tr>';
+  h+='<tr class="avg"><td>Prom.</td><td></td><td></td>'+sums.map((s,j)=>'<td>'+(cnt[j]?mmss(s/cnt[j]):'—')+'</td>').join('')+'</tr>';
   w.innerHTML=h+'</tbody></table></div>';
 }
 const esc=s=>s.replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
@@ -284,10 +326,10 @@ const tsv=()=>table().map(r=>r.map(v=>String(v??'').replace(/[\t\n]/g,' ')).join
 const csv=()=>table().map(r=>r.map(v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(';')).join('\n');
 function waText(){
   const p=S.perfil;
-  let t='*Registro de ciclos*\n'+p.conductor+' · '+p.placa+(p.cap?' · '+p.cap+' m³':'')+'\nFrente: '+p.frente+' → '+p.descarga+'\n\n';
-  t+='Ciclo | Cola fr | Maniob | Carga | Acarreo | Cola des | Desc | Retorno | Total\n';
+  let t='*Registro de ciclos*\n'+p.conductor+' · '+p.placa+(p.cap?' · '+p.cap+' m³':'')+'\n\n';
+  t+='Ciclo (hora, frente→descarga) | Cola fr | Maniob | Carga | Acarreo | Cola des | Desc | Retorno | Total\n';
   S.ciclos.forEach((c,ix)=>{
-    t+=c.n+' ('+hms(c.m.llegada).slice(0,5)+') | '+PH.map(q=>mmss(dur(c,q[1],q[2]))).join(' | ')+' | '+mmss(retorno(ix))+' | '+mmss(total(ix))+(c.notas.length?'\n   Novedad: '+c.notas.join(' / '):'')+'\n';
+    t+=c.n+' ('+hms(c.m.llegada).slice(0,5)+', '+(c.frente||p.frente||'?')+'→'+(c.descarga||p.descarga||'?')+') | '+PH.map(q=>mmss(dur(c,q[1],q[2]))).join(' | ')+' | '+mmss(retorno(ix))+' | '+mmss(total(ix))+(c.notas.length?'\n   Novedad: '+c.notas.join(' / '):'')+'\n';
   });
   return t+'\n--- Datos para Excel (segundos) ---\n'+csv();
 }
@@ -295,11 +337,11 @@ function waText(){
 $('btn-save').onclick=()=>{
   const v=id=>$(id).value.trim();
   if(!v('f-conductor')||!v('f-placa')){toast('Escriba al menos el nombre y la placa');return;}
-  S.perfil={conductor:v('f-conductor'),placa:v('f-placa'),cap:v('f-cap'),frente:v('f-frente'),descarga:v('f-descarga')};
+  S.perfil={conductor:v('f-conductor'),placa:v('f-placa'),cap:v('f-cap')};
   S.ciclos.forEach(dirty); save(); render(); wake(); flush();
 };
-$('btn-edit').onclick=()=>{const p=S.perfil;$('f-conductor').value=p.conductor;$('f-placa').value=p.placa;$('f-cap').value=p.cap;$('f-frente').value=p.frente;$('f-descarga').value=p.descarga;S.perfil=null;render();window.scrollTo(0,0);};
-$('big').onclick=press;
+$('btn-edit').onclick=()=>{const p=S.perfil;$('f-conductor').value=p.conductor;$('f-placa').value=p.placa;$('f-cap').value=p.cap||'';S.perfil=null;render();window.scrollTo(0,0);};
+$('big').onclick=()=>press();
 $('btn-undo').onclick=undo;
 $('btn-note').onclick=()=>{if(!last()){toast('Primero registre una llegada al frente');return;}$('note-box').hidden=false;$('f-note').focus();};
 $('btn-note-x').onclick=()=>{$('note-box').hidden=true;};
