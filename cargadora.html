@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2f3d46">
+<link rel="manifest" href="manifest-cargadora.json">
+<link rel="icon" href="icon-c-192.png">
+<link rel="apple-touch-icon" href="icon-c-192.png">
+<title>Ciclo de Carguío</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#f3f2ee; --panel:#ffffff; --fg:#1c1d1a; --muted:#62645c; --line:#d9d8d0;
+  --hivis:#f2b705; --hivis-ink:#1c1d1a; --steel:#2f3d46; --ok:#2e7d4f; --warn:#b4531a;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141613; --panel:#1e211d; --fg:#ecebe4; --muted:#9a9c92; --line:#33372f;
+  --hivis:#f5c02a; --hivis-ink:#141613; --steel:#9fb3bf; --ok:#5fbf86; --warn:#e48a4e; color-scheme:dark}}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px;display:flex;flex-direction:column;gap:14px}
+[hidden]{display:none!important}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:30px;margin:0;text-transform:uppercase}
+h1 span{color:var(--hivis)}
+.who{font-size:14px;color:var(--muted)}
+h2{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+input{font:inherit;font-size:17px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0}
+input:focus-visible,button:focus-visible{outline:3px solid var(--hivis);outline-offset:2px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:10px 14px;font-weight:600}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px}
+.btn-row button{flex:1 1 140px}
+.primary{background:var(--steel);color:var(--bg);border-color:var(--steel)}
+.sl{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-height:46px;font-size:16px;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--steel);color:var(--bg);border-color:var(--steel)}
+.inline{display:flex;gap:8px}
+.inline input{flex:1}
+.now .tag{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.now .phase{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.1}
+.clockrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.clock{font-family:var(--mono);font-size:42px;font-weight:700;font-variant-numeric:tabular-nums}
+.lastc{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.lastc b{font-family:var(--mono);color:var(--fg);font-size:18px}
+.sync{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.sync i{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
+.sync.ok i{background:var(--ok)} .sync.pend i{background:var(--warn)}
+.truck{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.truck .pl{font-family:var(--display);font-size:28px;font-weight:800}
+.truck .cnt{font-family:var(--mono);font-size:15px;color:var(--muted)}
+.pases{display:flex;gap:6px;flex-wrap:wrap}
+.pases i{width:26px;height:26px;border-radius:6px;background:var(--hivis);display:grid;place-items:center;font-style:normal;font-weight:700;font-size:13px;color:var(--hivis-ink)}
+.pases i.open{background:transparent;border:2px dashed var(--hivis);color:var(--fg)}
+.big{width:100%;min-height:150px;border:none;border-radius:14px;background:var(--hivis);color:var(--hivis-ink);
+  font-family:var(--display);font-weight:800;font-size:34px;line-height:1.05;text-transform:uppercase;
+  padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 6px 0 rgba(0,0,0,.25);touch-action:manipulation;
+  background-image:repeating-linear-gradient(135deg,transparent 0 22px,rgba(0,0,0,.06) 22px 44px)}
+.big small{font-family:var(--body);font-size:15px;font-weight:600;text-transform:none;opacity:.8}
+.big:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.big:disabled{opacity:.45}
+.full{width:100%;min-height:56px;font-size:18px;border:2px solid var(--steel);background:var(--panel);color:var(--fg);font-weight:700}
+.flash{animation:fl .4s ease}
+@keyframes fl{0%{filter:brightness(1.4)}100%{filter:none}}
+@media (prefers-reduced-motion:reduce){.flash{animation:none}.big:active{transform:none}}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--bg)}
+th:first-child,td:first-child{text-align:left}
+td.open{color:var(--muted)}
+tr.avg td{font-weight:700;border-top:2px solid var(--fg)}
+.empty{color:var(--muted);font-size:15px;margin:0}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:20;max-width:90%}
+.confirm{border:2px solid var(--warn);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+textarea{width:100%;min-height:120px;font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kpi span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.kpi b{font-family:var(--mono);font-size:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ciclo de <span>Carguío</span></h1>
+    <div class="who" id="who"></div>
+  </header>
+
+  <!-- CONFIGURACIÓN -->
+  <section class="panel" id="setup">
+    <h2>Equipo y frente</h2>
+    <div><div class="sl">Equipo</div><div class="seg" id="seg-equipo"></div></div>
+    <label id="otro-wrap" hidden>Otro equipo<input id="f-otro" placeholder="Ej. Cargadora CAT 950"></label>
+    <div><div class="sl">Frente</div><div class="seg" id="seg-frente"></div></div>
+    <label>Capacidad del balde (m³, opcional)<input id="f-balde" inputmode="decimal" placeholder="Ej. 1.9"></label>
+    <div><div class="sl">Modo de medición</div><div class="seg" id="seg-modo"></div></div>
+    <p class="hint" id="modo-hint"></p>
+    <button class="primary" id="btn-save">Empezar a medir</button>
+  </section>
+
+  <!-- VOLQUETA EN CARGA -->
+  <section class="panel" id="truckp" hidden>
+    <div id="truck-none">
+      <div class="sl">¿Qué volqueta se está cargando?</div>
+      <div class="seg" id="seg-placas" style="margin-top:6px"></div>
+      <div class="inline" style="margin-top:8px"><input id="f-placa" placeholder="Nueva placa, ej. ABB-7399" autocapitalize="characters"><button id="btn-addplaca">Agregar</button></div>
+    </div>
+    <div id="truck-cur" hidden>
+      <div class="truck"><div><div class="sl">Cargando volqueta</div><div class="pl" id="cur-placa"></div></div><div class="cnt" id="cur-cnt"></div></div>
+      <div class="pases" id="cur-pases"></div>
+      <button class="full" id="btn-full">Volqueta llena · sale</button>
+    </div>
+  </section>
+
+  <!-- ESTADO -->
+  <section class="panel now" id="main" hidden>
+    <div class="tag" id="tag">Pase 1</div>
+    <div class="phase" id="phase">Listo</div>
+    <div class="clockrow"><div class="clock" id="clock">00.0</div><div class="lastc">Último ciclo <b id="lastc">—</b></div></div>
+    <div class="sync" id="sync"><i></i><span id="sync-txt"></span></div>
+  </section>
+
+  <button class="big" id="big" hidden><span id="big-txt"></span><small id="big-sub"></small></button>
+
+  <div class="btn-row" id="tools" hidden>
+    <button id="btn-undo">Deshacer última marca</button>
+    <button id="btn-note">Anotar novedad</button>
+  </div>
+  <div class="panel" id="note-box" hidden>
+    <label>Novedad<input id="f-note" placeholder="Ej. bloque grande, reacomodo, operador se detuvo"></label>
+    <div class="btn-row"><button class="primary" id="btn-note-ok">Guardar</button><button id="btn-note-x">Cancelar</button></div>
+  </div>
+
+  <!-- RESUMEN -->
+  <section class="panel" id="hist" hidden>
+    <h2>Resumen</h2>
+    <div class="kpis" id="kpis"></div>
+    <div class="sl">Volquetas cargadas</div>
+    <div id="tbl-cargas"></div>
+    <div class="sl">Pases (últimos 20)</div>
+    <div id="tbl-pases"></div>
+    <p class="hint">Tiempos en segundos. El giro vacío y el ciclo de un pase se completan con el inicio del pase siguiente de la misma volqueta.</p>
+    <div class="btn-row">
+      <button class="primary" id="btn-wa">Enviar por WhatsApp</button>
+      <button id="btn-copy">Copiar para Excel</button>
+      <button id="btn-dl">Descargar CSV</button>
+    </div>
+    <textarea id="copy-area" hidden readonly></textarea>
+    <div class="btn-row">
+      <button id="btn-edit">Cambiar equipo / frente / modo</button>
+      <button id="btn-reset">Borrar todo y empezar día nuevo</button>
+    </div>
+    <div class="confirm" id="reset-box" hidden>
+      <strong>¿Borrar los registros de este celular?</strong>
+      <span class="hint" id="reset-hint"></span>
+      <div class="btn-row"><button id="btn-reset-ok" style="border-color:var(--warn);color:var(--warn)">Sí, borrar</button><button id="btn-reset-x">Cancelar</button></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ====== PEGUE AQUÍ LA URL DE SU APPS SCRIPT (termina en /exec) ====== */
+const SERVER_URL = '';
+/* ==================================================================== */
+
+const EQUIPOS=['Volvo EC330B LC','CAT 349','Otro'];
+const FRENTES=['Voladura','Roca mina'];
+const MODOS=[{k:'etapas',t:'Por etapas'},{k:'ciclo',t:'Solo ciclo'}];
+const KEY='ciclo-carguio-v1';
+const ST=[ // etapas del pase
+  {k:'exc',btn:'Empieza a excavar',   sub:'Toque cuando el balde entra al material', now:'Excavando / llenando balde'},
+  {k:'gir',btn:'Balde lleno · gira',  sub:'Toque cuando sale del material y gira',    now:'Giro cargado'},
+  {k:'des',btn:'Empieza a descargar', sub:'Toque cuando abre el balde sobre la volqueta', now:'Descargando'},
+  {k:'vac',btn:'Descargó · regresa',  sub:'Toque cuando termina de vaciar y gira de vuelta', now:'Giro vacío'}
+];
+
+let S={cfg:null,placas:[],pases:[],cargas:[],cur:null,log:[],pend:{},dev:null};
+try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
+if(!S.dev) S.dev='E'+Math.random().toString(36).slice(2,7).toUpperCase();
+let draft=S.cfg?Object.assign({},S.cfg):{equipo:null,frente:null,modo:'etapas',balde:'',otro:''};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast('No se pudo guardar en este celular');}}
+save();
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+function hms(t){if(!t) return ''; const d=new Date(t); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());}
+function fechaDe(t){const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+const sec=ms=>ms==null?null:Math.round(ms/100)/10;           // segundos con 1 decimal
+const fs=v=>v==null?'—':v.toFixed(1);
+const fmm=s=>{if(s==null) return '—'; s=Math.round(s); return Math.floor(s/60)+':'+pad(s%60);};
+const equipoName=c=>c.equipo==='Otro'?(c.otro||'Otro'):c.equipo;
+
+const cargaById=id=>S.cargas.find(c=>c.id===id);
+const curCarga=()=>S.cur?cargaById(S.cur):null;
+const pasesDe=id=>S.pases.filter(p=>p.carga===id);
+const lastPase=()=>{const c=curCarga(); if(!c) return null; const ps=pasesDe(c.id); return ps[ps.length-1]||null;};
+function nextKey(){
+  const p=lastPase(); if(!p||S.cfg.modo==='ciclo') return 'exc';
+  const i=ST.findIndex(s=>!p.t[s.k]); return i===-1?'exc':ST[i].k;
+}
+function nextPaseInCarga(p){const ps=pasesDe(p.carga); const i=ps.indexOf(p); return ps[i+1]||null;}
+function D(p){ // duraciones de un pase (s)
+  const n=nextPaseInCarga(p), t=p.t, d=(a,b)=>(a&&b)?sec(b-a):null;
+  return {exc:d(t.exc,t.gir),gir:d(t.gir,t.des),des:d(t.des,t.vac),vac:n?d(t.vac,n.t.exc):null,ciclo:n?d(t.exc,n.t.exc):null};
+}
+function DC(c){ // datos de una carga
+  const ps=pasesDe(c.id); const first=ps[0], last=ps[ps.length-1];
+  const ini=first?first.t.exc:null;
+  const finCarga=last?(last.t.vac||c.fin||null):null;
+  const idx=S.cargas.indexOf(c); const prev=idx>0?S.cargas[idx-1]:null;
+  const espera=(prev&&prev.fin&&ini&&fechaDe(prev.fin)===fechaDe(ini))?sec(ini-prev.fin):null;
+  const bal=parseFloat(String(c.balde||'').replace(',','.'));
+  return {n:ps.length,ini,fin:c.fin,tcarga:(ini&&finCarga)?sec(finCarga-ini):null,espera,vol:isNaN(bal)?null:Math.round(bal*ps.length*100)/100};
+}
+const dirty=(kind,id)=>{if(id) S.pend[kind+':'+id]=1;};
+
+/* ---------- acciones ---------- */
+function press(){
+  const c=curCarga(); if(!c){toast('Primero elija la volqueta');return;}
+  const k=nextKey(), now=Date.now();
+  if(k==='exc'){
+    const prev=lastPase();
+    const p={id:S.dev+'-'+now,n:S.pases.length+1,carga:c.id,k:pasesDe(c.id).length+1,t:{exc:now},notas:[]};
+    S.pases.push(p); S.log.push({a:'new',id:p.id});
+    if(prev) dirty('P',prev.id);         // el pase anterior gana giro vacío y ciclo
+    dirty('P',p.id); dirty('C',c.id);
+    const pc=S.cargas[S.cargas.indexOf(c)-1]; if(pc) dirty('C',pc.id);
+  } else {
+    const p=lastPase(); p.t[k]=now; S.log.push({a:'mark',id:p.id,k}); dirty('P',p.id); if(k==='vac') dirty('C',c.id);
+  }
+  save(); vib(); flash(); render(); flush();
+}
+function selectPlaca(pl){
+  const now=Date.now();
+  const c={id:S.dev+'-C'+now,placa:pl,equipo:equipoName(S.cfg),frente:S.cfg.frente,balde:S.cfg.balde,modo:S.cfg.modo,creada:now,fin:null,notas:[]};
+  S.cargas.push(c); S.cur=c.id; S.log.push({a:'sel',id:c.id});
+  if(!S.placas.includes(pl)) S.placas.push(pl);
+  save(); render(); toast('Cargando '+pl);
+}
+function full(){
+  const c=curCarga(); if(!c) return;
+  if(!pasesDe(c.id).length){ // sin pases: solo deseleccionar
+    S.cargas.splice(S.cargas.indexOf(c),1); S.cur=null; S.log=S.log.filter(l=>l.id!==c.id); save(); render(); return;
+  }
+  c.fin=Date.now(); S.cur=null; S.log.push({a:'full',id:c.id}); dirty('C',c.id);
+  const ps=pasesDe(c.id); dirty('P',ps[ps.length-1].id);
+  save(); vib(); render(); flush(); toast(c.placa+' sale con '+ps.length+' pases');
+}
+function undo(){
+  const l=S.log.pop(); if(!l){toast('Nada que deshacer');return;}
+  if(l.a==='mark'){const p=S.pases.find(x=>x.id===l.id); if(p){delete p.t[l.k]; dirty('P',p.id); dirty('C',p.carga);}}
+  if(l.a==='new'){const i=S.pases.findIndex(x=>x.id===l.id); if(i>-1){const p=S.pases[i]; S.pases.splice(i,1); S.pend['P:'+p.id]='del';
+      const ps=pasesDe(p.carga); if(ps.length) dirty('P',ps[ps.length-1].id); dirty('C',p.carga);
+      S.pases.forEach((x,j)=>x.n=j+1);}}
+  if(l.a==='full'){const c=cargaById(l.id); if(c){c.fin=null; S.cur=c.id; dirty('C',c.id);}}
+  if(l.a==='sel'){const i=S.cargas.findIndex(x=>x.id===l.id); if(i>-1 && !pasesDe(l.id).length){S.cargas.splice(i,1); if(S.cur===l.id) S.cur=null;}}
+  save(); render(); flush(); toast('Se deshizo la última marca');
+}
+
+/* ---------- render ---------- */
+function seg(id,list,val,onpick){
+  const box=$(id); box.innerHTML='';
+  list.forEach(o=>{const v=o.k||o, t=o.t||o; const b=document.createElement('button'); b.type='button'; b.textContent=t;
+    b.setAttribute('aria-pressed',val===v?'true':'false'); b.onclick=()=>onpick(v); box.appendChild(b);});
+}
+function renderSetup(){
+  seg('seg-equipo',EQUIPOS,draft.equipo,v=>{draft.equipo=v;renderSetup();});
+  seg('seg-frente',FRENTES,draft.frente,v=>{draft.frente=v;renderSetup();});
+  seg('seg-modo',MODOS,draft.modo,v=>{draft.modo=v;renderSetup();});
+  $('otro-wrap').hidden=draft.equipo!=='Otro';
+  $('modo-hint').textContent=draft.modo==='etapas'
+    ?'4 toques por pase: excavar, gira cargado, descarga, gira vacío. Da el detalle de cada etapa.'
+    :'1 toque por pase, cada vez que el balde entra al material. Más fácil si el equipo es muy rápido.';
+}
+function render(){
+  const cfg=S.cfg;
+  $('setup').hidden=!!cfg; ['truckp','main','big','tools','hist'].forEach(id=>$(id).hidden=!cfg);
+  if(!cfg){renderSetup();return;}
+  $('who').textContent=equipoName(cfg)+' · '+cfg.frente+' · '+(cfg.modo==='etapas'?'por etapas':'solo ciclo');
+  const c=curCarga();
+  $('truck-none').hidden=!!c; $('truck-cur').hidden=!c;
+  if(!c){
+    seg('seg-placas',S.placas.slice(-8),null,selectPlaca);
+    if(!S.placas.length) $('seg-placas').innerHTML='<span class="hint">Escriba la placa de la primera volqueta.</span>';
+  } else {
+    const ps=pasesDe(c.id), k=nextKey();
+    $('cur-placa').textContent=c.placa;
+    $('cur-cnt').textContent=ps.length+' pase'+(ps.length===1?'':'s');
+    $('cur-pases').innerHTML=ps.map((p,i)=>{const open=cfg.modo==='etapas'&&i===ps.length-1&&!p.t.vac;return '<i class="'+(open?'open':'')+'">'+(i+1)+'</i>';}).join('');
+  }
+  // botón grande
+  const k=c?nextKey():'exc', st=ST.find(s=>s.k===k), lp=lastPase();
+  $('big').disabled=!c;
+  $('big-txt').textContent=c?st.btn:'Elija la volqueta';
+  $('big-sub').textContent=c?(k==='exc'?'Pase '+((c?pasesDe(c.id).length:0)+1)+' · '+st.sub:st.sub):'Toque una placa arriba';
+  // estado
+  if(!c){$('tag').textContent='Sin volqueta';$('phase').textContent=S.pases.length?'Esperando la siguiente volqueta':'Listo para empezar';}
+  else if(!lp){$('tag').textContent=c.placa;$('phase').textContent='Esperando el primer pase';}
+  else{
+    $('tag').textContent=c.placa+' · pase '+lp.k;
+    if(cfg.modo==='ciclo') $('phase').textContent='Ciclo en curso';
+    else {const done=ST.filter(s=>lp.t[s.k]); $('phase').textContent=done[done.length-1].now;}
+  }
+  const cyc=S.pases.map(D).filter(d=>d.ciclo!=null); $('lastc').textContent=cyc.length?fs(cyc[cyc.length-1].ciclo)+' s':'—';
+  renderTables(); renderSync(); tick();
+}
+function lastMark(){
+  let t=0; S.pases.forEach(p=>Object.values(p.t).forEach(v=>{if(v>t)t=v;}));
+  S.cargas.forEach(c=>{if(c.fin&&c.fin>t)t=c.fin;}); return t||null;
+}
+function tick(){
+  const t=lastMark(); if(!t){$('clock').textContent='00.0';return;}
+  const s=(Date.now()-t)/1000; $('clock').textContent=s<60?s.toFixed(1):fmm(s);
+}
+setInterval(()=>{if(S.cfg) tick();},100);
+
+function avg(a){a=a.filter(v=>v!=null); return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
+function renderTables(){
+  const ds=S.pases.map(D), cs=S.cargas.filter(c=>pasesDe(c.id).length).map(c=>Object.assign({placa:c.placa,done:!!c.fin},DC(c)));
+  const done=cs.filter(c=>c.done);
+  const k=[['Ciclo prom.',fs(avg(ds.map(d=>d.ciclo)))+' s'],['Pases',S.pases.length],['Volquetas',done.length],
+    ['Pases / volq.',done.length?(avg(done.map(c=>c.n))).toFixed(1):'—'],['Carga volq.',fmm(avg(done.map(c=>c.tcarga)))+' min'],['Espera exc.',fmm(avg(cs.map(c=>c.espera)))+' min']];
+  $('kpis').innerHTML=k.map(x=>'<div class="kpi"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('');
+  if(!cs.length){$('tbl-cargas').innerHTML='<p class="empty">Aún no hay volquetas.</p>';}
+  else $('tbl-cargas').innerHTML='<div class="tbl"><table><thead><tr><th>Placa</th><th>Inicio</th><th>Pases</th><th>T. carga</th><th>Espera exc.</th>'+(cs.some(c=>c.vol!=null)?'<th>Vol. est. m³</th>':'')+'</tr></thead><tbody>'+
+    cs.map(c=>'<tr><td>'+esc(c.placa)+(c.done?'':' <span class="hint">(cargando)</span>')+'</td><td>'+hms(c.ini).slice(0,5)+'</td><td>'+c.n+'</td><td>'+fmm(c.tcarga)+'</td><td>'+fmm(c.espera)+'</td>'+(cs.some(x=>x.vol!=null)?'<td>'+(c.vol==null?'—':c.vol)+'</td>':'')+'</tr>').join('')+
+    '</tbody></table></div>';
+  if(!S.pases.length){$('tbl-pases').innerHTML='<p class="empty">Aún no hay pases. Elija la volqueta y toque el botón amarillo.</p>';return;}
+  const et=S.cfg.modo==='etapas'||S.pases.some(p=>p.t.gir);
+  const rows=S.pases.slice(-20).map(p=>{const d=D(p);
+    return '<tr><td>'+p.n+'</td><td>'+esc((cargaById(p.carga)||{}).placa||'')+'</td><td>'+p.k+'</td>'+(et?[d.exc,d.gir,d.des,d.vac].map(v=>'<td class="'+(v==null?'open':'')+'">'+fs(v)+'</td>').join(''):'')+'<td class="'+(d.ciclo==null?'open':'')+'">'+fs(d.ciclo)+'</td></tr>';}).join('');
+  const av=['exc','gir','des','vac','ciclo'].map(x=>avg(ds.map(d=>d[x])));
+  $('tbl-pases').innerHTML='<div class="tbl"><table><thead><tr><th>N°</th><th>Volq.</th><th>Pase</th>'+(et?'<th>Excav.</th><th>Giro c.</th><th>Desc.</th><th>Giro v.</th>':'')+'<th>Ciclo</th></tr></thead><tbody>'+rows+
+    '<tr class="avg"><td>Prom.</td><td></td><td></td>'+(et?av.slice(0,4).map(v=>'<td>'+fs(v)+'</td>').join(''):'')+'<td>'+fs(av[4])+'</td></tr></tbody></table></div>';
+}
+
+/* ---------- datos y envío ---------- */
+function rowPase(p){
+  const c=cargaById(p.carga)||{}, d=D(p);
+  return {ID:p.id,Fecha:fechaDe(p.t.exc),Equipo:c.equipo,Frente:c.frente,Modo:c.modo,Pase_N:p.n,Placa:c.placa,Pase_en_volqueta:p.k,
+    H_inicio_excavacion:hms(p.t.exc),Excavacion_s:d.exc??'',Giro_cargado_s:d.gir??'',Descarga_s:d.des??'',Giro_vacio_s:d.vac??'',Ciclo_s:d.ciclo??'',
+    Novedades:(p.notas||[]).join(' / ')};
+}
+function rowCarga(c){
+  const d=DC(c);
+  return {ID:c.id,Fecha:fechaDe(d.ini||c.creada),Equipo:c.equipo,Frente:c.frente,Placa:c.placa,H_primer_pase:hms(d.ini),H_salida:hms(c.fin),
+    N_pases:d.n,Tiempo_carga_s:d.tcarga??'',Espera_excavadora_s:d.espera??'',Balde_m3:c.balde||'',Volumen_estimado_m3:d.vol??'',Novedades:(c.notas||[]).join(' / ')};
+}
+let syncing=false;
+function renderSync(){
+  const n=Object.keys(S.pend).length, el=$('sync');
+  if(!SERVER_URL){el.className='sync';$('sync-txt').textContent='Sin base de datos configurada · use WhatsApp';return;}
+  if(!n){el.className='sync ok';$('sync-txt').textContent='Todo enviado a la base de datos';return;}
+  el.className='sync pend';
+  $('sync-txt').textContent=(syncing?'Enviando ':'')+n+' registro'+(n>1?'s':'')+' por enviar'+(navigator.onLine?'':' · sin señal, se envía solo al conectar');
+}
+async function sendSheet(sheet,keys){
+  if(!keys.length) return;
+  const sent={}; keys.forEach(k=>sent[k]=S.pend[k]);
+  const rows=keys.map(k=>{const id=k.slice(2);
+    if(S.pend[k]==='del') return {ID:id,deleted:true};
+    if(sheet==='Pases'){const p=S.pases.find(x=>x.id===id); return p?rowPase(p):{ID:id,deleted:true};}
+    const c=cargaById(id); return (c&&pasesDe(c.id).length)?rowCarga(c):{ID:id,deleted:true};});
+  const r=await fetch(SERVER_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sheet,rows})});
+  const j=await r.json(); if(!j.ok) throw new Error(j.error||'error');
+  keys.forEach(k=>{if(S.pend[k]===sent[k]) delete S.pend[k];}); save();
+}
+async function flush(){
+  if(!SERVER_URL||syncing||!navigator.onLine){renderSync();return;}
+  const keys=Object.keys(S.pend); if(!keys.length){renderSync();return;}
+  syncing=true; renderSync();
+  try{ await sendSheet('Pases',keys.filter(k=>k[0]==='P')); await sendSheet('Cargas',keys.filter(k=>k[0]==='C')); }catch(e){}
+  syncing=false; renderSync();
+}
+window.addEventListener('online',flush); setInterval(flush,30000);
+
+function toTable(objs){if(!objs.length) return []; const h=Object.keys(objs[0]); return [h,...objs.map(o=>h.map(k=>o[k]))];}
+const tsvOf=t=>t.map(r=>r.map(v=>typeof v==='number'?String(v).replace('.',','):String(v??'').replace(/[\t\n]/g,' ')).join('\t')).join('\n');
+const csvOf=t=>t.map(r=>r.map(v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(';')).join('\n');
+const cargasT=()=>toTable(S.cargas.filter(c=>pasesDe(c.id).length).map(rowCarga));
+const pasesT=()=>toTable(S.pases.map(rowPase));
+function waText(){
+  const ds=S.pases.map(D), done=S.cargas.filter(c=>c.fin&&pasesDe(c.id).length).map(DC);
+  let t='*Ciclos de carguío* \n'+equipoName(S.cfg)+' · '+S.cfg.frente+'\n';
+  t+='Pases: '+S.pases.length+' · Ciclo prom.: '+fs(avg(ds.map(d=>d.ciclo)))+' s\n';
+  if(S.cfg.modo==='etapas') t+='Excav. '+fs(avg(ds.map(d=>d.exc)))+' · Giro c. '+fs(avg(ds.map(d=>d.gir)))+' · Desc. '+fs(avg(ds.map(d=>d.des)))+' · Giro v. '+fs(avg(ds.map(d=>d.vac)))+' (s)\n';
+  t+='Volquetas: '+done.length+' · Pases/volq.: '+(done.length?avg(done.map(c=>c.n)).toFixed(1):'—')+' · Carga prom.: '+fmm(avg(done.map(c=>c.tcarga)))+' min\n\n';
+  t+='*Volquetas*\n'+S.cargas.filter(c=>pasesDe(c.id).length).map(c=>{const d=DC(c);return c.placa+' '+hms(d.ini).slice(0,5)+' · '+d.n+' pases · '+fmm(d.tcarga)+' min';}).join('\n');
+  t+='\n\n--- CARGAS (Excel) ---\n'+csvOf(cargasT())+'\n\n--- PASES (Excel) ---\n'+csvOf(pasesT());
+  return t;
+}
+
+/* ---------- eventos ---------- */
+$('btn-save').onclick=()=>{
+  draft.balde=$('f-balde').value.trim(); draft.otro=$('f-otro').value.trim();
+  if(!draft.equipo){toast('Elija el equipo');return;}
+  if(!draft.frente){toast('Elija el frente');return;}
+  S.cfg=Object.assign({},draft);
+  const c=curCarga(); if(c&&!pasesDe(c.id).length){c.equipo=equipoName(S.cfg);c.frente=S.cfg.frente;c.balde=S.cfg.balde;c.modo=S.cfg.modo;}
+  save(); render(); wake(); flush();
+};
+$('btn-edit').onclick=()=>{draft=Object.assign({},S.cfg); $('f-balde').value=draft.balde||''; $('f-otro').value=draft.otro||''; S.cfg=null; render(); window.scrollTo(0,0);};
+$('big').onclick=press;
+$('btn-full').onclick=full;
+$('btn-addplaca').onclick=()=>{const v=$('f-placa').value.trim().toUpperCase(); if(!v){toast('Escriba la placa');return;} $('f-placa').value=''; selectPlaca(v);};
+$('f-placa').addEventListener('keydown',e=>{if(e.key==='Enter') $('btn-addplaca').click();});
+$('btn-undo').onclick=undo;
+$('btn-note').onclick=()=>{$('note-box').hidden=false;$('f-note').focus();};
+$('btn-note-x').onclick=()=>{$('note-box').hidden=true;};
+$('btn-note-ok').onclick=()=>{
+  const t=$('f-note').value.trim(); if(t){
+    const txt=hms(Date.now()).slice(0,5)+' '+t, p=lastPase(), c=curCarga();
+    if(p){p.notas=p.notas||[];p.notas.push(txt);dirty('P',p.id);} else if(c){c.notas.push(txt);}
+    else if(S.pases.length){const q=S.pases[S.pases.length-1];q.notas.push(txt);dirty('P',q.id);}
+    if(c){dirty('C',c.id);} save(); render(); flush(); toast('Novedad guardada');}
+  $('f-note').value=''; $('note-box').hidden=true;
+};
+$('btn-copy').onclick=async()=>{
+  const t='CARGAS\n'+tsvOf(cargasT())+'\n\nPASES\n'+tsvOf(pasesT());
+  try{await navigator.clipboard.writeText(t);toast('Copiado. Pegue en Excel');}
+  catch(e){const a=$('copy-area');a.hidden=false;a.value=t;a.select();toast('Seleccione el texto y cópielo');}
+};
+$('btn-wa').onclick=()=>{window.open('https://wa.me/?text='+encodeURIComponent(waText()),'_blank');};
+$('btn-dl').onclick=()=>{
+  const b=new Blob(['﻿'+'CARGAS\n'+csvOf(cargasT())+'\n\nPASES\n'+csvOf(pasesT())],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='carguio_'+fechaDe(Date.now())+'.csv';document.body.appendChild(a);a.click();a.remove();
+};
+$('btn-reset').onclick=()=>{
+  const n=Object.keys(S.pend).length;
+  $('reset-hint').textContent=SERVER_URL&&n?'Hay '+n+' registros que aún no llegan a la base de datos. Conéctese a internet antes de borrar o envíe por WhatsApp.':'Lo ya enviado queda guardado en la base de datos.';
+  $('reset-box').hidden=false;
+};
+$('btn-reset-x').onclick=()=>{$('reset-box').hidden=true;};
+$('btn-reset-ok').onclick=()=>{
+  const pendNoDel=Object.keys(S.pend).filter(k=>S.pend[k]!=='del').length;
+  if(SERVER_URL&&pendNoDel){toast('Primero envíe los registros pendientes');return;}
+  const keep={}; Object.keys(S.pend).forEach(k=>{if(S.pend[k]==='del') keep[k]='del';});
+  S.pases=[];S.cargas=[];S.cur=null;S.log=[];S.pend=keep; save(); $('reset-box').hidden=true; render(); toast('Registros borrados');
+};
+
+let tt; function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,1800);}
+function vib(){try{navigator.vibrate&&navigator.vibrate(50);}catch(e){}}
+function flash(){const b=$('big'); b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');}
+async function wake(){try{await navigator.wakeLock?.request('screen');}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){wake();tick();flush();}});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+render(); if(S.cfg){wake();flush();}
+</script>
+</body>
+</html>
